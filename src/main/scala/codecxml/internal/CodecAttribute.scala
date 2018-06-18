@@ -1,8 +1,12 @@
-package codecxml
+package codecxml.internal
+
+import codecxml.DecodeResult
 
 trait CodecAttribute[A] extends EncodeAttribute[A] with DecodeAttribute[A] {
-  def encode(name: String, a: A): Attribute = Encoder.encode(name, a)
-  def decode(elem: Attribute): DecodeResult[A] = Decoder.decode(elem)
+  def encode(a: A): String = Encoder.encode(a)
+  def decode(attribute: String): DecodeResult[A] = Decoder.decode(attribute)
+
+  def xmap[B](f: A => B)(g: B => A): CodecAttribute[B] = CodecAttribute.of(Encoder contramap g, Decoder map f)
 
   val Encoder: EncodeAttribute[A]
   val Decoder: DecodeAttribute[A]

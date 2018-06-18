@@ -18,9 +18,10 @@ object CodecXmlBuild extends Build {
       resolvers += "Stacy Curl's repo" at "http://dl.bintray.com/stacycurl/repo/",
       resolvers += "jcenter" at "http://jcenter.bintray.com",
       libraryDependencies <++= scalaVersion(dependencies(twoTwelve → List(
-        "org.scala-lang.modules"     % "scala-xml"         % twoTwelve,
+        "org.scala-lang.modules"     %% "scala-xml"        % "1.1.0",
         "org.scala-lang"             % "scala-compiler"    % twoTwelve,
         "org.scala-lang"             % "scala-library"     % twoTwelve    % "test",
+        "com.github.stacycurl"       %% "delta-core"       % "1.1.2"     % "test",
         "com.github.stacycurl"       %% "delta-matchers"   % "1.1.0"     % "test"
       ), twoEleven → List(
         "com.github.stacycurl"       %% "delta-matchers"   % "1.0.19" % "test"

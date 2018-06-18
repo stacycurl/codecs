@@ -2,47 +2,72 @@ package codecxml
 
 import scala.{xml => X}
 
-case class DecodeResult[+A](value: Either[Errors, A]) {
-  def errors: Errors = value.fold(identity, _ => Errors(Nil))
+sealed trait DecodeResult[+A] {
+  import DecodeResult._
 
-  def toOption: Option[A] = value.toOption
+  def toOption: Option[A] = fold(Some(_), _ => None)
+  def errors: List[Error] = fold(_ => Nil, identity)
+  def appendContext(context: Context): DecodeResult[A] = leftMap(_.map(_.appendContext(context)))
 
-  def map[B](f: A => B): DecodeResult[B] = DecodeResult(value.map(f))
+  def leftMap(f: List[Error] => List[Error]): DecodeResult[A] = fold(Ok.apply, f andThen Ko.apply)
 
-  def flatMap[B](f: A => DecodeResult[B]): DecodeResult[B] = DecodeResult(value.flatMap(a => f(a).value))
+  def map[B](f: A => B): DecodeResult[B] = fold(f andThen Ok.apply, Ko.apply)
+
+  def flatMap[B](f: A => DecodeResult[B]): DecodeResult[B] = fold(f, Ko.apply)
+
+  def fold[B](ok: A => B, ko: List[Error] => B): B
+
+  def &&[B](other: DecodeResult[B]): DecodeResult[(A,B)] = (this, other) match {
+    case (Ok(a),       Ok(b))       => Ok((a, b))
+    case (Ko(aErrors), Ko(bErrors)) => Ko(aErrors ++ bErrors)
+    case (Ok(a),       Ko(bErrors)) => Ko(bErrors)
+    case (Ko(aErrors), Ok(b))       => Ko(aErrors)
+  }
 }
 
 object DecodeResult {
-  def applyN[A, B, R](da: DecodeResult[A], db: DecodeResult[B])(f: (A, B) => R): DecodeResult[R] = {
-    (da, db) match {
-      case (Ok(a), Ok(b)) => ok(f(a, b))
-      case _              => errors(da.errors + db.errors)
-    }
+  case class Ok[A](value: A) extends DecodeResult[A] {
+    override def fold[B](ok: A => B, ko: List[Error] => B): B = ok(value)
   }
 
-  def applyN[A, B, C, D, R](da: DecodeResult[A], db: DecodeResult[B], dc: DecodeResult[C], dd: DecodeResult[D])(f: (A, B, C, D) => R): DecodeResult[R] = {
-    (da, db, dc, dd) match {
-      case (Ok(a), Ok(b), Ok(c), Ok(d)) => ok(f(a, b, c, d))
-      case _                            => errors(da.errors + db.errors + dc.errors + dd.errors)
-    }
+  object Ko {
+    def apply(description: String, optNodes: Option[X.NodeSeq] = None): DecodeResult[Nothing] =
+      apply(Error(description, optNodes.map(Context.Nodes).toList))
+
+    def apply(error: Error): DecodeResult[Nothing] = Ko(List(error))
   }
 
+  case class Ko(value: List[Error]) extends DecodeResult[Nothing] {
+    override def fold[B](ok: Nothing => B, ko: List[Error] => B): B = ko(value)
 
-  def ok[A](value: A): DecodeResult[A] = DecodeResult(Right(value))
-  def error(description: String, optElem: Option[X.Elem] = None): DecodeResult[Nothing] = error(Error(description, optElem))
-  def error(error: Error): DecodeResult[Nothing] = errors(Errors(List(error)))
-  def errors(errors: Errors) = DecodeResult(Left(errors))
+    override def toString: String = value.mkString("\n")
+  }
+
+  type DR[A] = DecodeResult[A]
+
+  def concat[A](results: List[DecodeResult[A]]): DecodeResult[List[A]] = {
+    results.reverse.foldLeft(Ok(List.empty[A]): DecodeResult[List[A]]) {
+      case (Ok(as),  Ok(a))      => Ok(a :: as)
+      case (Ko(acc), Ko(errors)) => Ko(acc ++ errors)
+      case (Ok(as),  Ko(errors)) => Ko(errors)
+      case (Ko(acc), Ok(_))      => Ko(acc)
+    }
+  }
 
   def fromOption[A](optA: Option[A], ifNone: => Error): DecodeResult[A] =
-    DecodeResult(optA.fold(Left(Errors(List(ifNone))): Either[Errors, A])(Right(_)))
+    optA.fold(Ko(List(ifNone)): DecodeResult[A])(Ok(_))
 
-  private object Ok {
-    def unapply[A](result: DecodeResult[A]): Option[A] = result.toOption
-  }
+
+  private def errorsOf(drs: DR[_]*): DR[Nothing] = Ko(drs.flatMap(_.errors).toList)
 }
 
-case class Errors(errors: List[Error]) {
-  def +(other: Errors) = Errors(errors ++ other.errors)
+case class Error(description: String, context: List[Context] = Nil) {
+  def appendContext(context: Context): Error = copy(context = this.context :+ context)
 }
 
-case class Error(description: String, optElem: Option[X.Elem] = None)
+sealed trait Context
+object Context {
+  case class Nodes(nodes: X.NodeSeq) extends Context
+  case class Element(name: Name) extends Context
+  case class Attributes(attributes: codecxml.internal.Attributes) extends Context
+}
