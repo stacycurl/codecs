@@ -1,6 +1,7 @@
-package codecxml.internal
+package codecs.xml.internal
 
-import codecxml.{DecodeResult, Error, Name}
+import codecs.xml.Name
+import codecs.{DecodeResult, Error}
 
 import scala.annotation.tailrec
 import scala.{xml => X}
@@ -39,6 +40,10 @@ object Attributes {
 }
 
 case class Attributes(values: Map[Name, List[String]] = Map()) {
+  def withName(newName: Name): Attributes = Attributes(values.map {
+    case (_, valuesForName) => newName -> valuesForName
+  })
+
   def toMetaData: X.MetaData = values.foldLeft(X.Null: X.MetaData) {
     case (acc, (name, valuesForName)) => valuesForName.foldLeft(acc) {
       case (md, value) => Attribute(name, value).toMeta(md)
@@ -60,6 +65,10 @@ case class Attributes(values: Map[Name, List[String]] = Map()) {
 }
 
 case class Namespaces(values: Map[Name, String] = Map()) {
+  def withName(newName: Name): Namespaces = Namespaces(values.map {
+    case (_, value) => newName -> value
+  })
+
   def toBinding: X.NamespaceBinding = sorted.reverse.foldLeft(X.TopScope: X.NamespaceBinding) {
     case (acc, (Name.Unprefixed("xmlns"), value))  => X.NamespaceBinding(null, value, acc)
     case (acc, (Name.Unprefixed(label), value))  => X.NamespaceBinding(label, value, acc)

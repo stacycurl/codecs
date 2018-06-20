@@ -1,6 +1,6 @@
-package codecxml.internal
+package codecs.xml.internal
 
-import codecxml.DecodeResult
+import codecs.DecodeResult
 
 trait DecodeAttribute[A] {
   def decode(attribute: String): DecodeResult[A]
@@ -45,6 +45,6 @@ trait DecodeNAttributesInstances extends LowPriorityDecodeNAttributes {
 trait LowPriorityDecodeNAttributes {
   implicit def decodeOne[A: DecodeAttribute]: DecodeNAttributes[A] = {
     case (attribute: String) :: _ => DecodeAttribute.of[A].decode(attribute)
-    case _ => DecodeResult.Ko("Expected one attribute", None)
+    case attributes => DecodeResult.Ko("Expected one attribute", Some(attributes))
   }
 }

@@ -1,13 +1,11 @@
-package codecxml
-
-import scala.{xml => X}
+package codecs
 
 sealed trait DecodeResult[+A] {
   import DecodeResult._
 
   def toOption: Option[A] = fold(Some(_), _ => None)
   def errors: List[Error] = fold(_ => Nil, identity)
-  def appendContext(context: Context): DecodeResult[A] = leftMap(_.map(_.appendContext(context)))
+  def appendContext(context: AnyRef): DecodeResult[A] = leftMap(_.map(_.appendContext(context)))
 
   def leftMap(f: List[Error] => List[Error]): DecodeResult[A] = fold(Ok.apply, f andThen Ko.apply)
 
@@ -16,6 +14,8 @@ sealed trait DecodeResult[+A] {
   def flatMap[B](f: A => DecodeResult[B]): DecodeResult[B] = fold(f, Ko.apply)
 
   def fold[B](ok: A => B, ko: List[Error] => B): B
+
+  def &:[B](other: DecodeResult[B]): DecodeResult[(B, A)] = other && this
 
   def &&[B](other: DecodeResult[B]): DecodeResult[(A,B)] = (this, other) match {
     case (Ok(a),       Ok(b))       => Ok((a, b))
@@ -31,8 +31,8 @@ object DecodeResult {
   }
 
   object Ko {
-    def apply(description: String, optNodes: Option[X.NodeSeq] = None): DecodeResult[Nothing] =
-      apply(Error(description, optNodes.map(Context.Nodes).toList))
+    def apply(description: String, optContext: Option[AnyRef] = None): DecodeResult[Nothing] =
+      apply(Error(description, optContext.toList))
 
     def apply(error: Error): DecodeResult[Nothing] = Ko(List(error))
   }
@@ -61,13 +61,6 @@ object DecodeResult {
   private def errorsOf(drs: DR[_]*): DR[Nothing] = Ko(drs.flatMap(_.errors).toList)
 }
 
-case class Error(description: String, context: List[Context] = Nil) {
-  def appendContext(context: Context): Error = copy(context = this.context :+ context)
-}
-
-sealed trait Context
-object Context {
-  case class Nodes(nodes: X.NodeSeq) extends Context
-  case class Element(name: Name) extends Context
-  case class Attributes(attributes: codecxml.internal.Attributes) extends Context
+case class Error(description: String, context: List[AnyRef] = Nil) {
+  def appendContext(context: AnyRef): Error = copy(context = this.context :+ context)
 }

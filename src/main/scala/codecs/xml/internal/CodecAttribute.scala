@@ -1,6 +1,7 @@
-package codecxml.internal
+package codecs.xml.internal
 
-import codecxml.DecodeResult
+import codecs.DecodeResult
+
 
 trait CodecAttribute[A] extends EncodeAttribute[A] with DecodeAttribute[A] {
   def encode(a: A): String = Encoder.encode(a)
@@ -13,7 +14,7 @@ trait CodecAttribute[A] extends EncodeAttribute[A] with DecodeAttribute[A] {
 }
 
 object CodecAttribute {
-  implicit def of[A](implicit E: EncodeAttribute[A], D: DecodeAttribute[A]): CodecAttribute[A] = {
+  def of[A](implicit E: EncodeAttribute[A], D: DecodeAttribute[A]): CodecAttribute[A] = {
     new CodecAttribute[A] {
       val Encoder: EncodeAttribute[A] = E
       val Decoder: DecodeAttribute[A] = D

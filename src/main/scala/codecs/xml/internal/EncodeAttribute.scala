@@ -1,4 +1,4 @@
-package codecxml.internal
+package codecs.xml.internal
 
 trait EncodeAttribute[A] {
   def encode(a: A): String

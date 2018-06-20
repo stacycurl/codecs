@@ -1,4 +1,4 @@
-package codecxml
+package codecs.xml
 
 import scala.language.implicitConversions
 
@@ -9,6 +9,8 @@ sealed trait Name {
 }
 
 object Name {
+  def apply(prefix: String, label: String): Name = if (prefix == null) Unprefixed(label) else Prefixed(prefix, label)
+
   implicit val ordering: Ordering[Name] =
     Ordering.Tuple2[Boolean, String].on[Name](name => (name.isPrefixed, name.toString))
 
@@ -22,6 +24,8 @@ object Name {
       case _                      => Unprefixed(name)
     }
   }
+
+  def Placeholder: Name = Unprefixed("placeholder")
 
   case class Unprefixed(value: String) extends Name {
     def isPrefixed: Boolean = false

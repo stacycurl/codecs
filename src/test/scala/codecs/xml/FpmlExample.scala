@@ -1,12 +1,11 @@
-package codecxml
+package codecs.xml
 
-import codecxml.DecodeResult.Ok
-import codecxml.internal.CodecAttribute
+import codecs.DecodeResult.Ok
+import codecs.xml.internal.CodecAttribute
 import org.scalatest.{FreeSpec, Matchers}
 
 import scala.{xml => X}
 import sjc.delta.Delta.DeltaOps
-import sjc.delta.matchers.syntax.anyDeltaMatcherOps
 import sjc.delta.matchers.{beDifferentTo, beIdenticalTo}
 import sjc.delta.matchers.syntax._
 
@@ -18,34 +17,34 @@ class FpmlExample extends FreeSpec with Matchers {
 
   val pretty = new X.PrettyPrinter(100, 2)
 
-  private def prettyPrint[A: Encode: ClassTag](a: A): Unit = {
-    println(pretty.formatNodes(Encode.encode(a).toNode))
-  }
-
   "blah" in {
 
-    val decoded = Decode.decode[FpML](xml)
+    val decoded = DecodeNode.decode[FpML](xml)
     val original = removeNamespaces(xml)
 
     val Ok(fpml) = decoded
 
-    val encodedAsXml = Encode.encode("cme:FpML", fpml)
-    val roundTripped: X.Node = encodedAsXml.toNode
+    val roundTripped = EncodeNode.encode(fpml)
 
-    println(pretty.formatNodes(roundTripped))
+//    println(pretty.formatNodes(roundTripped))
 
-    println("\n\n\n")
+//    println("\n\n\n")
 
 
 //    println(pretty.formatNodes(noNS))
 
-    println("\n\n\n")
+//    println("\n\n\n")
 
     val originalRoundtripped = sjc.delta.std.xml("original", "roundTripped")
+    import originalRoundtripped._
 
+//    print(pretty.formatNodes(roundTripped))
+//
     val delta = originalRoundtripped.nodeDelta.apply(original, roundTripped).asXml
 
-    println(pretty.formatNodes(delta))
+    roundTripped should beIdenticalTo(original)
+
+//    println(pretty.formatNodes(delta))
   }
 
   private def removeNamespaces(input: X.Node): X.Node = input match {
@@ -63,7 +62,7 @@ class FpmlExample extends FreeSpec with Matchers {
 case class FpML(clearingConfirmed: ClearingConfirmed, xmlns: Namespace, cmd: Namespace, dsig: Namespace)
 
 object FpML {
-  implicit val codec: Codec[FpML] = Codec(FpML.apply _,  FpML.unapply _)(
+  implicit val codec: CodecXml[FpML] = CodecXml.apply(FpML.apply _,  FpML.unapply _)(
     _.element("clearingConfirmed"), _.namespace("xmlns"), _.namespace("xmlns:cme"), _.namespace("xmlns:dsig")
   )
 }
@@ -73,7 +72,7 @@ case class ClearingConfirmed(
 )
 
 object ClearingConfirmed {
-  implicit val codec: Codec[ClearingConfirmed] = Codec(ClearingConfirmed.apply _, ClearingConfirmed.unapply _)(
+  implicit val codec: CodecXml[ClearingConfirmed] = CodecXml(ClearingConfirmed.apply _, ClearingConfirmed.unapply _)(
     _.attribute("fpmlVersion"), _.element("header"), _.element("trade"), _.element("party"), _.element("account")
   )
 }
@@ -81,7 +80,7 @@ object ClearingConfirmed {
 case class Account(id: String, accountId: AccountId, servicingParty: Reference)
 
 object Account {
-  implicit val codec: Codec[Account] = Codec(Account.apply _, Account.unapply _)(
+  implicit val codec: CodecXml[Account] = CodecXml(Account.apply _, Account.unapply _)(
     _.attribute("id"), _.element("accountId"), _.element("servicingParty")
   )
 }
@@ -89,7 +88,7 @@ object Account {
 case class AccountId(scheme: String, value: String)
 
 object AccountId {
-  implicit val codec: Codec[AccountId] = Codec(AccountId.apply _, AccountId.unapply _)(
+  implicit val codec: CodecXml[AccountId] = CodecXml(AccountId.apply _, AccountId.unapply _)(
     _.attribute("accountIdScheme"), _.text
   )
 }
@@ -97,7 +96,7 @@ object AccountId {
 case class Party(id: String, partyId: PartyId)
 
 object Party {
-  implicit val codec: Codec[Party] = Codec(Party.apply _, Party.unapply _)(
+  implicit val codec: CodecXml[Party] = CodecXml(Party.apply _, Party.unapply _)(
     _.attribute("id"), _.element("partyId")
   )
 }
@@ -105,7 +104,7 @@ object Party {
 case class PartyId(scheme: Option[String], value: String)
 
 object PartyId {
-  implicit val codec: Codec[PartyId] = Codec(PartyId.apply _, PartyId.unapply _)(
+  implicit val codec: CodecXml[PartyId] = CodecXml(PartyId.apply _, PartyId.unapply _)(
     _.attribute("partyIdScheme"), _.text
   )
 }
@@ -113,7 +112,7 @@ object PartyId {
 case class Header(messageId: MessageId, sentBy: SentBy, sentTo: List[SendTo], creationTimestamp: CreationTimestamp)
 
 object Header {
-  implicit val codec: Codec[Header] = Codec(Header.apply _, Header.unapply _)(
+  implicit val codec: CodecXml[Header] = CodecXml(Header.apply _, Header.unapply _)(
     _.element("messageId"), _.element("sentBy"), _.element("sendTo"), _.element("creationTimestamp")
   )
 }
@@ -121,7 +120,7 @@ object Header {
 case class MessageId(scheme: String, value: String)
 
 object MessageId {
-  implicit val codec: Codec[MessageId] = Codec(MessageId.apply _, MessageId.unapply _)(
+  implicit val codec: CodecXml[MessageId] = CodecXml(MessageId.apply _, MessageId.unapply _)(
     _.attribute("messageIdScheme"), _.text
   )
 }
@@ -129,7 +128,7 @@ object MessageId {
 case class SentBy(scheme: String, value: String)
 
 object SentBy {
-  implicit val codec: Codec[SentBy] = Codec(SentBy.apply _, SentBy.unapply _)(
+  implicit val codec: CodecXml[SentBy] = CodecXml(SentBy.apply _, SentBy.unapply _)(
     _.attribute("messageAddressScheme"), _.text
   )
 }
@@ -137,18 +136,18 @@ object SentBy {
 case class SendTo(scheme: String, value: String)
 
 object SendTo {
-  implicit val codec: Codec[SendTo] = Codec(SendTo.apply _, SendTo.unapply _)(
+  implicit val codec: CodecXml[SendTo] = CodecXml(SendTo.apply _, SendTo.unapply _)(
     _.attribute("messageAddressScheme"), _.text
   )
 }
 
 case class CreationTimestamp(value: String)
-object CreationTimestamp extends Codec.HasText[CreationTimestamp](new CreationTimestamp(_), _.value)
+object CreationTimestamp extends CodecXml.HasText[CreationTimestamp](new CreationTimestamp(_), _.value)
 
 case class Trade(header: TradeHeader, swap: Swap)
 
 object Trade {
-  implicit val codec: Codec[Trade] = Codec(Trade.apply _, Trade.unapply _)(
+  implicit val codec: CodecXml[Trade] = CodecXml(Trade.apply _, Trade.unapply _)(
     _.element("tradeHeader"), _.element("swap")
   )
 }
@@ -162,7 +161,7 @@ case class TradeHeader(
 )
 
 object TradeHeader {
-  implicit val codec: Codec[TradeHeader] = Codec(TradeHeader.apply _, TradeHeader.unapply _)(
+  implicit val codec: CodecXml[TradeHeader] = CodecXml(TradeHeader.apply _, TradeHeader.unapply _)(
     _.namespace("xmlns:xsi"), _.attribute("xsi:type"),
     _.element("partyTradeIdentifier"), _.element("partyTradeInformation"), _.element("tradeDate"), _.element("clearedDate"),
     _.element("cme:originatingEvent"), _.element("cme:status"), _.element("cme:universalSwapIdentifier"),
@@ -171,26 +170,26 @@ object TradeHeader {
 }
 
 case class FDate(value: String)
-object FDate extends Codec.HasText[FDate](new FDate(_), _.value)
+object FDate extends CodecXml.HasText[FDate](new FDate(_), _.value)
 
 case class OriginatingEvent(value: String)
-object OriginatingEvent extends Codec.HasText[OriginatingEvent](new OriginatingEvent(_), _.value)
+object OriginatingEvent extends CodecXml.HasText[OriginatingEvent](new OriginatingEvent(_), _.value)
 
 case class PartyTradeIdentifier(partyReference: Reference, tradeIds: List[TradeId])
 
 object PartyTradeIdentifier {
-  implicit val codec: Codec[PartyTradeIdentifier] = Codec(PartyTradeIdentifier.apply _, PartyTradeIdentifier.unapply _)(
+  implicit val codec: CodecXml[PartyTradeIdentifier] = CodecXml(PartyTradeIdentifier.apply _, PartyTradeIdentifier.unapply _)(
     _.element("partyReference"), _.element("tradeId")
   )
 }
 
 case class Reference(href: String)
-object Reference extends Codec.HasAttriubte[Reference](new Reference(_), _.href, "href")
+object Reference extends CodecXml.HasAttriubte[Reference](new Reference(_), _.href, "href")
 
 case class TradeId(scheme: String, value: String)
 
 object TradeId {
-  implicit val codec: Codec[TradeId] = Codec(TradeId.apply _, TradeId.unapply _)(
+  implicit val codec: CodecXml[TradeId] = CodecXml(TradeId.apply _, TradeId.unapply _)(
     _.attribute("tradeIdScheme"), _.text
   )
 }
@@ -200,7 +199,7 @@ case class PartyTradeInformation(
 )
 
 object PartyTradeInformation {
-  implicit val codec: Codec[PartyTradeInformation] = Codec(PartyTradeInformation.apply _, PartyTradeInformation.unapply _)(
+  implicit val codec: CodecXml[PartyTradeInformation] = CodecXml(PartyTradeInformation.apply _, PartyTradeInformation.unapply _)(
     _.element("partyReference"), _.element("accountReference"), _.element("relatedParty"), _.element("category")
   )
 }
@@ -208,21 +207,21 @@ object PartyTradeInformation {
 case class RelatedParty(partyReference: Reference, role: Role)
 
 object RelatedParty {
-  implicit val codec: Codec[RelatedParty] = Codec(RelatedParty.apply _, RelatedParty.unapply _)(
+  implicit val codec: CodecXml[RelatedParty] = CodecXml(RelatedParty.apply _, RelatedParty.unapply _)(
     _.element("partyReference"), _.element("role")
   )
 }
 
 case class Role(value: String)
-object Role extends Codec.HasText[Role](new Role(_), _.value)
+object Role extends CodecXml.HasText[Role](new Role(_), _.value)
 
 case class Status(value: String)
-object Status extends Codec.HasText[Status](new Status(_), _.value)
+object Status extends CodecXml.HasText[Status](new Status(_), _.value)
 
 case class Category(scheme: String, value: String)
 
 object Category {
-  implicit val codec: Codec[Category] = Codec(Category.apply _, Category.unapply _)(
+  implicit val codec: CodecXml[Category] = CodecXml(Category.apply _, Category.unapply _)(
     _.attribute("categoryScheme"), _.text
   )
 }
@@ -230,7 +229,7 @@ object Category {
 case class UniversalSwapIdentifier(issuer: Issuer, usi: Usi)
 
 object UniversalSwapIdentifier {
-  implicit val codec: Codec[UniversalSwapIdentifier] = Codec(UniversalSwapIdentifier.apply _, UniversalSwapIdentifier.unapply _)(
+  implicit val codec: CodecXml[UniversalSwapIdentifier] = CodecXml(UniversalSwapIdentifier.apply _, UniversalSwapIdentifier.unapply _)(
     _.element("cme:issuer"), _.element("cme:usi")
   )
 }
@@ -238,7 +237,7 @@ object UniversalSwapIdentifier {
 case class CreditLimitInformation(limitApplicable: LimitApplicable)
 
 object CreditLimitInformation {
-  implicit val codec: Codec[CreditLimitInformation] = Codec(CreditLimitInformation.apply _, CreditLimitInformation.unapply _)(
+  implicit val codec: CodecXml[CreditLimitInformation] = CodecXml(CreditLimitInformation.apply _, CreditLimitInformation.unapply _)(
     _.element("cme:limitApplicable")
   )
 }
@@ -249,7 +248,7 @@ case class LimitApplicable(
 )
 
 object LimitApplicable {
-  implicit val codec: Codec[LimitApplicable] = Codec(LimitApplicable.apply _, LimitApplicable.unapply _)(
+  implicit val codec: CodecXml[LimitApplicable] = CodecXml(LimitApplicable.apply _, LimitApplicable.unapply _)(
     _.element("cme:level"), _.element("cme:limitType"), _.element("cme:limitAmount"),
     _.element("cme:amountUtilized"), _.element("cme:amountRemaining"), _.element("cme:limitImpactDueToTrade"),
     _.element("cme:currency")
@@ -259,7 +258,7 @@ object LimitApplicable {
 case class Level(scheme: String, value: String)
 
 object Level {
-  implicit val codec: Codec[Level] = Codec(Level.apply _, Level.unapply _)(
+  implicit val codec: CodecXml[Level] = CodecXml(Level.apply _, Level.unapply _)(
     _.attribute("creditLimitLevelScheme"), _.text
   )
 }
@@ -267,21 +266,21 @@ object Level {
 case class LimitType(scheme: String, value: String)
 
 object LimitType {
-  implicit val codec: Codec[LimitType] = Codec(LimitType.apply _, LimitType.unapply _)(
+  implicit val codec: CodecXml[LimitType] = CodecXml(LimitType.apply _, LimitType.unapply _)(
     _.attribute("creditLimitTypeScheme"), _.text
   )
 }
 
 case class LimitAmount(value: String)
-object LimitAmount extends Codec.HasText[LimitAmount](new LimitAmount(_), _.value)
+object LimitAmount extends CodecXml.HasText[LimitAmount](new LimitAmount(_), _.value)
 
 case class Amount(value: String)
-object Amount extends Codec.HasText[Amount](new Amount(_), _.value)
+object Amount extends CodecXml.HasText[Amount](new Amount(_), _.value)
 
 case class Currency(scheme: Option[String], value: String)
 
 object Currency {
-  implicit val codec: Codec[Currency] = Codec(Currency.apply _, Currency.unapply _)(
+  implicit val codec: CodecXml[Currency] = CodecXml(Currency.apply _, Currency.unapply _)(
     _.attribute("currencyScheme"), _.text
   )
 }
@@ -289,7 +288,7 @@ object Currency {
 case class Issuer(scheme: String, value: String)
 
 object Issuer {
-  implicit val codec: Codec[Issuer] = Codec(Issuer.apply _, Issuer.unapply _)(
+  implicit val codec: CodecXml[Issuer] = CodecXml(Issuer.apply _, Issuer.unapply _)(
     _.attribute("issuerIdScheme"), _.text
   )
 }
@@ -297,7 +296,7 @@ object Issuer {
 case class Usi(scheme: String, value: String)
 
 object Usi {
-  implicit val codec: Codec[Usi] = Codec(Usi.apply _, Usi.unapply _)(
+  implicit val codec: CodecXml[Usi] = CodecXml(Usi.apply _, Usi.unapply _)(
     _.attribute("usiScheme"), _.text
   )
 }
@@ -306,7 +305,7 @@ object Usi {
 case class Swap(swapStream: List[SwapStream], additionalPayment: AdditionalPayment)
 
 object Swap {
-  implicit val codec: Codec[Swap] = Codec(Swap.apply _, Swap.unapply _)(
+  implicit val codec: CodecXml[Swap] = CodecXml(Swap.apply _, Swap.unapply _)(
     _.element("swapStream"), _.element("additionalPayment")
   )
 }
@@ -317,7 +316,7 @@ case class AdditionalPayment(
 )
 
 object AdditionalPayment {
-  implicit val codec: Codec[AdditionalPayment] = Codec(AdditionalPayment.apply _, AdditionalPayment.unapply _)(
+  implicit val codec: CodecXml[AdditionalPayment] = CodecXml(AdditionalPayment.apply _, AdditionalPayment.unapply _)(
     _.element("payerPartyReference"), _.element("receiverPartyReference"), _.element("paymentAmount"), _.element("paymentDate"),
     _.element("paymentType")
   )
@@ -326,7 +325,7 @@ object AdditionalPayment {
 case class PaymentDate(unadjustedDate: FDate, dateAdjustments: DateAdjustments)
 
 object PaymentDate {
-  implicit val codec: Codec[PaymentDate] = Codec(PaymentDate.apply _, PaymentDate.unapply _)(
+  implicit val codec: CodecXml[PaymentDate] = CodecXml(PaymentDate.apply _, PaymentDate.unapply _)(
     _.element("unadjustedDate"), _.element("dateAdjustments")
   )
 }
@@ -334,7 +333,7 @@ object PaymentDate {
 case class PaymentAmount(currency: Currency, amount: String)
 
 object PaymentAmount {
-  implicit val codec: Codec[PaymentAmount] = Codec(PaymentAmount.apply _, PaymentAmount.unapply _)(
+  implicit val codec: CodecXml[PaymentAmount] = CodecXml(PaymentAmount.apply _, PaymentAmount.unapply _)(
     _.element("currency"), _.element("amount")
   )
 }
@@ -348,7 +347,7 @@ case class SwapStream(
 )
 
 object SwapStream {
-  implicit val codec: Codec[SwapStream] = Codec(SwapStream.apply _, SwapStream.unapply _)(
+  implicit val codec: CodecXml[SwapStream] = CodecXml(SwapStream.apply _, SwapStream.unapply _)(
     _.attribute("id"), _.element("payerPartyReference"), _.element("payerAccountReference"),
     _.element("receiverPartyReference"), _.element("receiverAccountReference"),
     _.element("calculationPeriodDates"), _.element("paymentDates"), _.element("resetDates"), _.element("calculationPeriodAmount"),
@@ -359,7 +358,7 @@ object SwapStream {
 case class Cashflows(cashflowsMatchParameters: Boolean, paymentCalculationPeriod: List[PaymentCalculationPeriod])
 
 object Cashflows {
-  implicit val codce: Codec[Cashflows] = Codec(Cashflows.apply _, Cashflows.unapply _)(
+  implicit val codce: CodecXml[Cashflows] = CodecXml(Cashflows.apply _, Cashflows.unapply _)(
     _.element("cashflowsMatchParameters"), _.element("paymentCalculationPeriod")
   )
 }
@@ -367,7 +366,7 @@ object Cashflows {
 case class PaymentCalculationPeriod(adjustedPaymentDate: FDate, calculationPeriod: CalculationPeriod)
 
 object PaymentCalculationPeriod {
-  implicit val codec: Codec[PaymentCalculationPeriod] = Codec(PaymentCalculationPeriod.apply _, PaymentCalculationPeriod.unapply _)(
+  implicit val codec: CodecXml[PaymentCalculationPeriod] = CodecXml(PaymentCalculationPeriod.apply _, PaymentCalculationPeriod.unapply _)(
     _.element("adjustedPaymentDate"), _.element("calculationPeriod")
   )
 }
@@ -378,7 +377,7 @@ case class CalculationPeriod(
 )
 
 object CalculationPeriod {
-  implicit val codec: Codec[CalculationPeriod] = Codec(CalculationPeriod.apply _, CalculationPeriod.unapply _)(
+  implicit val codec: CodecXml[CalculationPeriod] = CodecXml(CalculationPeriod.apply _, CalculationPeriod.unapply _)(
     _.element("adjustedStartDate"), _.element("adjustedEndDate"), _.element("notionalAmount"),
     _.element("floatingRateDefinition"), _.element("fixedRate")
   )
@@ -387,7 +386,7 @@ object CalculationPeriod {
 case class FloatingRateDefinition(rateObservation: RateObservation)
 
 object FloatingRateDefinition {
-  implicit val codec: Codec[FloatingRateDefinition] = Codec(FloatingRateDefinition.apply _, FloatingRateDefinition.unapply _)(
+  implicit val codec: CodecXml[FloatingRateDefinition] = CodecXml(FloatingRateDefinition.apply _, FloatingRateDefinition.unapply _)(
     _.element("rateObservation")
   )
 }
@@ -395,7 +394,7 @@ object FloatingRateDefinition {
 case class RateObservation(adjustedFixingDate: FDate, observedRate: String)
 
 object RateObservation {
-  implicit val codce: Codec[RateObservation] = Codec(RateObservation.apply _, RateObservation.unapply _)(
+  implicit val codce: CodecXml[RateObservation] = CodecXml(RateObservation.apply _, RateObservation.unapply _)(
     _.element("adjustedFixingDate"), _.element("observedRate")
   )
 }
@@ -403,7 +402,7 @@ object RateObservation {
 case class CalculationPeriodAmount(calculation: Calculation)
 
 object CalculationPeriodAmount {
-  implicit val codec: Codec[CalculationPeriodAmount] = Codec(CalculationPeriodAmount.apply _, CalculationPeriodAmount.unapply _)(
+  implicit val codec: CodecXml[CalculationPeriodAmount] = CodecXml(CalculationPeriodAmount.apply _, CalculationPeriodAmount.unapply _)(
     _.element("calculation")
   )
 }
@@ -414,7 +413,7 @@ case class Calculation(
 )
 
 object Calculation {
-  implicit val codec: Codec[Calculation] = Codec(Calculation.apply _, Calculation.unapply _)(
+  implicit val codec: CodecXml[Calculation] = CodecXml(Calculation.apply _, Calculation.unapply _)(
     _.element("notionalSchedule"), _.element("fixedRateSchedule"),
     _.element("floatingRateCalculation"), _.element("dayCountFraction")
   )
@@ -423,7 +422,7 @@ object Calculation {
 case class FixedRateSchedule(initialValue: String)
 
 object FixedRateSchedule {
-  implicit val codec: Codec[FixedRateSchedule] = Codec(FixedRateSchedule.apply _, FixedRateSchedule.unapply _)(
+  implicit val codec: CodecXml[FixedRateSchedule] = CodecXml(FixedRateSchedule.apply _, FixedRateSchedule.unapply _)(
     _.element("initialValue")
   )
 }
@@ -431,7 +430,7 @@ object FixedRateSchedule {
 case class FloatingRateCalculation(floatingRateIndex: String, indexTenor: Frequency)
 
 object FloatingRateCalculation {
-  implicit val codec: Codec[FloatingRateCalculation] = Codec(FloatingRateCalculation.apply _, FloatingRateCalculation.unapply _)(
+  implicit val codec: CodecXml[FloatingRateCalculation] = CodecXml(FloatingRateCalculation.apply _, FloatingRateCalculation.unapply _)(
     _.element("floatingRateIndex"), _.element("indexTenor")
   )
 }
@@ -439,7 +438,7 @@ object FloatingRateCalculation {
 case class NotionalSchedule(notionalStepSchedule: NotionalStepSchedule)
 
 object NotionalSchedule {
-  implicit val codcc: Codec[NotionalSchedule] = Codec(NotionalSchedule.apply _, NotionalSchedule.unapply _)(
+  implicit val codcc: CodecXml[NotionalSchedule] = CodecXml(NotionalSchedule.apply _, NotionalSchedule.unapply _)(
     _.element("notionalStepSchedule")
   )
 }
@@ -447,7 +446,7 @@ object NotionalSchedule {
 case class NotionalStepSchedule(initialValue: String, currency: Currency)
 
 object NotionalStepSchedule {
-  implicit val codcc: Codec[NotionalStepSchedule] = Codec(NotionalStepSchedule.apply _, NotionalStepSchedule.unapply _)(
+  implicit val codcc: CodecXml[NotionalStepSchedule] = CodecXml(NotionalStepSchedule.apply _, NotionalStepSchedule.unapply _)(
     _.element("initialValue"), _.element("currency")
   )
 }
@@ -458,7 +457,7 @@ case class ResetDates(
 )
 
 object ResetDates {
-  implicit val codec: Codec[ResetDates] = Codec(ResetDates.apply _, ResetDates.unapply _)(
+  implicit val codec: CodecXml[ResetDates] = CodecXml(ResetDates.apply _, ResetDates.unapply _)(
     _.attribute("id"), _.element("calculationPeriodDatesReference"), _.element("resetRelativeTo"),
     _.element("fixingDates"), _.element("resetFrequency"), _.element("resetDatesAdjustments")
   )
@@ -470,7 +469,7 @@ case class FixingDates(
 )
 
 object FixingDates {
-  implicit val codec: Codec[FixingDates] = Codec(FixingDates.apply _, FixingDates.unapply _)(
+  implicit val codec: CodecXml[FixingDates] = CodecXml(FixingDates.apply _, FixingDates.unapply _)(
     _.element("periodMultiplier"), _.element("period"), _.element("businessDayConvention"),
     _.element("businessCenters"), _.element("dateRelativeTo")
   )
@@ -482,7 +481,7 @@ case class PaymentDates(
 )
 
 object PaymentDates {
-  implicit val codec: Codec[PaymentDates] = Codec(PaymentDates.apply _, PaymentDates.unapply _)(
+  implicit val codec: CodecXml[PaymentDates] = CodecXml(PaymentDates.apply _, PaymentDates.unapply _)(
     _.element("calculationPeriodDatesReference"), _.element("paymentFrequency"), _.element("payRelativeTo"),
     _.element("paymentDatesAdjustments")
   )
@@ -494,7 +493,7 @@ case class CalculationPeriodDates(
 )
 
 object CalculationPeriodDates {
-  implicit val codec: Codec[CalculationPeriodDates] = Codec(CalculationPeriodDates.apply _, CalculationPeriodDates.unapply _)(
+  implicit val codec: CodecXml[CalculationPeriodDates] = CodecXml(CalculationPeriodDates.apply _, CalculationPeriodDates.unapply _)(
     _.attribute("id"), _.element("effectiveDate"), _.element("terminationDate"), _.element("calculationPeriodDatesAdjustments"),
     _.element("calculationPeriodFrequency")
   )
@@ -503,7 +502,7 @@ object CalculationPeriodDates {
 case class AdjustableDate(unadjustedDate: FDate, dateAdjustments: DateAdjustments)
 
 object AdjustableDate {
-  implicit val codec: Codec[AdjustableDate] = Codec(AdjustableDate.apply _, AdjustableDate.unapply _)(
+  implicit val codec: CodecXml[AdjustableDate] = CodecXml(AdjustableDate.apply _, AdjustableDate.unapply _)(
     _.element("unadjustedDate"), _.element("dateAdjustments")
   )
 }
@@ -514,7 +513,7 @@ case class DateAdjustments(
 )
 
 object DateAdjustments {
-  implicit val codec: Codec[DateAdjustments] = Codec(DateAdjustments.apply _, DateAdjustments.unapply _)(
+  implicit val codec: CodecXml[DateAdjustments] = CodecXml(DateAdjustments.apply _, DateAdjustments.unapply _)(
     _.element("businessDayConvention"), _.element("businessCentersReference"), _.element("businessCenters")
   )
 }
@@ -522,7 +521,7 @@ object DateAdjustments {
 case class BusinessCenters(id: Option[String], value: String)
 
 object BusinessCenters {
-  implicit val codec: Codec[BusinessCenters] = Codec(BusinessCenters.apply _, BusinessCenters.unapply _)(
+  implicit val codec: CodecXml[BusinessCenters] = CodecXml(BusinessCenters.apply _, BusinessCenters.unapply _)(
     _.attribute("id"), _.element("businessCenter")
   )
 }
@@ -530,19 +529,19 @@ object BusinessCenters {
 case class Frequency(periodMultiplier: PeriodMultiplier, period: Period, rollConvention: Option[String])
 
 object Frequency {
-  implicit val codec: Codec[Frequency] = Codec(Frequency.apply _, Frequency.unapply _)(
+  implicit val codec: CodecXml[Frequency] = CodecXml(Frequency.apply _, Frequency.unapply _)(
     _.element("periodMultiplier"), _.element("period"), _.element("rollConvention")
   )
 }
 
 case class Period(value: String)
-object Period extends Codec.HasText[Period](new Period(_), _.value)
+object Period extends CodecXml.HasText[Period](new Period(_), _.value)
 
 case class PeriodMultiplier(value: String)
-object PeriodMultiplier extends Codec.HasText[PeriodMultiplier](new PeriodMultiplier(_), _.value)
+object PeriodMultiplier extends CodecXml.HasText[PeriodMultiplier](new PeriodMultiplier(_), _.value)
 
 case class BusinessDayConvention(value: String)
-object BusinessDayConvention extends Codec.HasText[BusinessDayConvention](new BusinessDayConvention(_), _.value)
+object BusinessDayConvention extends CodecXml.HasText[BusinessDayConvention](new BusinessDayConvention(_), _.value)
 
 case class Namespace(value: String)
 

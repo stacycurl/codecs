@@ -10,8 +10,8 @@ object CodecXmlBuild extends Build {
     settings(
       organization              := "com.github.stacycurl",
       scalaVersion              := twoTwelve,
-      crossScalaVersions        := Seq(twoTwelve, twoEleven),
-      scalacOptions             := Seq("-feature", "-Xfatal-warnings", "-deprecation", "-unchecked", "-target:jvm-1.8"),
+//      crossScalaVersions        := Seq(twoTwelve, twoEleven),
+      scalacOptions             := Seq("-feature", "-Xfatal-warnings", "-deprecation", "-unchecked", "-target:jvm-1.8", "-Xlog-implicits"),
       javacOptions              := Seq("-source", "1.8", "-target", "1.8", "-Xlint"),
       maxErrors                 := 1,
       parallelExecution in Test := true,
@@ -20,11 +20,12 @@ object CodecXmlBuild extends Build {
       libraryDependencies <++= scalaVersion(dependencies(twoTwelve → List(
         "org.scala-lang.modules"     %% "scala-xml"        % "1.1.0",
         "org.scala-lang"             % "scala-compiler"    % twoTwelve,
+        "org.scalaz"                 %% "scalaz-core"      % "7.3.0-M6",
         "org.scala-lang"             % "scala-library"     % twoTwelve    % "test",
         "com.github.stacycurl"       %% "delta-core"       % "1.1.2"     % "test",
-        "com.github.stacycurl"       %% "delta-matchers"   % "1.1.0"     % "test"
+        "com.github.stacycurl"       %% "delta-matchers"   % "1.1.2"     % "test"
       ), twoEleven → List(
-        "com.github.stacycurl"       %% "delta-matchers"   % "1.0.19" % "test"
+        "com.github.stacycurl"       %% "delta-matchers"   % "1.1.2" % "test"
       ))),
       initialize := {
         val _ = initialize.value
