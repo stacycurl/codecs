@@ -1,10 +1,11 @@
 package codecs
 
+import scala.language.higherKinds
+
 import codecs.internal.Extractor
 import codecs.internal.ZipSyntax._
-import scalaz.{InvariantFunctor, Semigroup, Zip}
+import scalaz.{Category, InvariantFunctor, Semigroup, Zip}
 
-import scala.language.higherKinds
 import scala.reflect.ClassTag
 
 
@@ -23,6 +24,21 @@ trait Codec[A, Rep] extends Encode[A, Rep] with Decode[A, Rep] {
 }
 
 object Codec {
+  implicit val codecCategory: Category[Codec] = new Category[Codec] {
+    def id[A]: Codec[A, A] = new Codec[A, A] {
+      val Encoder: Encode[A, A] = (a: A) => a
+      val Decoder: Decode[A, A] = (rep: A) => DecodeResult.Ok(rep)
+    }
+
+    def compose[A, B, C](f: Codec[B, C], g: Codec[A, B]): Codec[A, C] = new Codec[A, C] {
+      val Encoder: Encode[A, C] = (a: A) => f.encode(g.encode(a))
+      val Decoder: Decode[A, C] = (rep: C) => for {
+        b ← f.decode(rep)
+        a ← g.decode(b)
+      } yield a
+    }
+  }
+
   implicit def codecInvariant[Rep]: InvariantFunctor[Codec[?, Rep]] = new InvariantFunctor[Codec[?, Rep]] {
     def xmap[A, B](codecA: Codec[A, Rep], f: A => B, g: B => A): Codec[B, Rep] = codecA.xmap(f)(g)
   }
