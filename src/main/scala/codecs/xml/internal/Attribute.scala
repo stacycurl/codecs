@@ -22,16 +22,12 @@ object Attributes {
     case (name, attrs) => name -> attrs.map(_.value)
   })
 
-  def fromList(attributes: List[Attribute]): X.MetaData = attributes.foldLeft(X.Null: X.MetaData) {
-    case (acc, attribute@Attribute(key, value)) ⇒ attribute.toMeta(acc)
-  }
-
   private implicit class MetaDataOps(val self: X.MetaData) extends AnyVal {
     def foldAttributes[A](zero: A)(f: String ⇒ String ⇒ A ⇒ A): A = {
       @tailrec def recurse(acc: A, current: X.MetaData): A = current match {
         case X.PrefixedAttribute(prefix, key, X.Text(value), next) ⇒ recurse(f(s"$prefix:$key")(value)(acc), next)
-        case X.UnprefixedAttribute(key, X.Text(value), next)  ⇒ recurse(f(key)(value)(acc), next)
-        case X.Null ⇒ acc
+        case X.UnprefixedAttribute(key, X.Text(value), next)       ⇒ recurse(f(key)(value)(acc), next)
+        case X.Null                                                ⇒ acc
       }
 
       recurse(zero, self)

@@ -29,25 +29,21 @@ object Xml {
   implicit val semigroup: Semigroup[Xml] = Semigroup.instance(_ + _)
 
   val Text: Producty[Xml, String] = Producty[Xml, String](text => Xml.Children(text = List(text))) {
-    case Children(_, _, _, List(text)) => text
+    case Children(_, _, _, List(text))             => text
     case Element(_, Children(_, _, _, List(text))) => text
   }
 
   def apply(node: X.Node): Xml = node match {
-    case X.Text(text) => Text(text)
+    case X.Text(text)                       => Text(text)
     case e@X.Elem(_, _, _, _, X.Text(text)) => Text(text)
-    case e: X.Elem => Element(e)
+    case e: X.Elem                          => Element(e)
     case other => ???
   }
 
   object Children {
-    def apply(xmls: List[Xml]): Children = {
-      val res = xmls.foldLeft(Children()) {
-        case (children, element: Element) => children.add(elements = List(element))
-        case (children, kids: Children)   => kids.addTo(children)
-      }
-
-      res
+    def apply(xmls: List[Xml]): Children = xmls.foldLeft(Children()) {
+      case (children, element: Element) => children.add(elements = List(element))
+      case (children, kids: Children)   => kids.addTo(children)
     }
 
     def apply(xml: Xml): Children = xml match {

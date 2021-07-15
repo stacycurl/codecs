@@ -98,7 +98,7 @@ object Codec {
     )
 
     def apply[CC: ClassTag, A,B,C](apply: (A,B,C) => CC, CC: Extractor[CC, (A,B,C)])(
-      pa:P[A], pb:P[B], pc:P[C]
+      pa: P[A], pb: P[B], pc: P[C]
     ): Codec[CC, Rep] = caseClassCodec(pa &: pb &: pc)(
       { case (a, (b, c)) => apply(a, b, c) },
       { case CC((a, b, c)) => (a, (b, c)) }

@@ -23,9 +23,11 @@ object CodecXmlBuild extends Build {
         "org.scalaz"                 %% "scalaz-core"      % "7.3.0-M6",
         "org.scala-lang"             % "scala-library"     % twoTwelve    % "test",
         "com.github.stacycurl"       %% "delta-core"       % "1.1.2"     % "test",
-        "com.github.stacycurl"       %% "delta-matchers"   % "1.1.2"     % "test"
+        "com.github.stacycurl"       %% "delta-matchers"   % "1.1.2"     % "test",
+        "org.apache.avro"            % "avro"              % "1.7.7"
       ), twoEleven → List(
-        "com.github.stacycurl"       %% "delta-matchers"   % "1.1.2" % "test"
+        "com.github.stacycurl"       %% "delta-matchers"   % "1.1.2" % "test",
+        "org.apache.avro"            % "avro" % "1.7.7"
       ))),
       initialize := {
         val _ = initialize.value

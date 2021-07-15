@@ -59,7 +59,12 @@ class FpmlExample extends FreeSpec with Matchers {
   }
 }
 
-case class FpML(clearingConfirmed: ClearingConfirmed, xmlns: Namespace, cmd: Namespace, dsig: Namespace)
+case class FpML(
+  @element clearingConfirmed: ClearingConfirmed,
+  @namespace("xmlns") xmlns: Namespace,
+  @namespace("xmlns:cme") cme: Namespace,
+  @namespace("xmlns:dsig") dsig: Namespace
+)
 
 object FpML {
   implicit val codec: CodecXml[FpML] = CodecXml.apply(FpML.apply _,  FpML.unapply _)(
@@ -68,7 +73,11 @@ object FpML {
 }
 
 case class ClearingConfirmed(
-  fpmlVersion: String, header: Header, trade: Trade, parties: List[Party], account: Account
+  @attribute fpmlVersion: String,
+  @element header: Header,
+  @element trade: Trade,
+  @element parties: List[Party],
+  @element account: Account
 )
 
 object ClearingConfirmed {
@@ -77,7 +86,11 @@ object ClearingConfirmed {
   )
 }
 
-case class Account(id: String, accountId: AccountId, servicingParty: Reference)
+case class Account(
+  @attribute id: String,
+  @element accountId: AccountId,
+  @element servicingParty: Reference
+)
 
 object Account {
   implicit val codec: CodecXml[Account] = CodecXml(Account.apply _, Account.unapply _)(
@@ -85,7 +98,10 @@ object Account {
   )
 }
 
-case class AccountId(scheme: String, value: String)
+case class AccountId(
+  @attribute("accountIdScheme") scheme: String,
+  @text value: String
+)
 
 object AccountId {
   implicit val codec: CodecXml[AccountId] = CodecXml(AccountId.apply _, AccountId.unapply _)(
@@ -93,7 +109,10 @@ object AccountId {
   )
 }
 
-case class Party(id: String, partyId: PartyId)
+case class Party(
+  @attribute id: String,
+  @attribute partyId: PartyId
+)
 
 object Party {
   implicit val codec: CodecXml[Party] = CodecXml(Party.apply _, Party.unapply _)(
@@ -101,7 +120,10 @@ object Party {
   )
 }
 
-case class PartyId(scheme: Option[String], value: String)
+case class PartyId(
+  @attribute("partyIdScheme") scheme: Option[String],
+  @text value: String
+)
 
 object PartyId {
   implicit val codec: CodecXml[PartyId] = CodecXml(PartyId.apply _, PartyId.unapply _)(
@@ -109,7 +131,12 @@ object PartyId {
   )
 }
 
-case class Header(messageId: MessageId, sentBy: SentBy, sentTo: List[SendTo], creationTimestamp: CreationTimestamp)
+case class Header(
+  @element messageId: MessageId,
+  @element sentBy: SentBy,
+  @element sentTo: List[SendTo],
+  @element creationTimestamp: CreationTimestamp
+)
 
 object Header {
   implicit val codec: CodecXml[Header] = CodecXml(Header.apply _, Header.unapply _)(
@@ -117,7 +144,10 @@ object Header {
   )
 }
 
-case class MessageId(scheme: String, value: String)
+case class MessageId(
+  @attribute("messageIdScheme") scheme: String,
+  @text value: String
+)
 
 object MessageId {
   implicit val codec: CodecXml[MessageId] = CodecXml(MessageId.apply _, MessageId.unapply _)(
@@ -125,7 +155,10 @@ object MessageId {
   )
 }
 
-case class SentBy(scheme: String, value: String)
+case class SentBy(
+  @attribute("messageAddressScheme") scheme: String,
+  @text value: String
+)
 
 object SentBy {
   implicit val codec: CodecXml[SentBy] = CodecXml(SentBy.apply _, SentBy.unapply _)(
@@ -133,7 +166,10 @@ object SentBy {
   )
 }
 
-case class SendTo(scheme: String, value: String)
+case class SendTo(
+  @attribute("messageAddressScheme") scheme: String,
+  @text value: String
+)
 
 object SendTo {
   implicit val codec: CodecXml[SendTo] = CodecXml(SendTo.apply _, SendTo.unapply _)(
@@ -141,10 +177,14 @@ object SendTo {
   )
 }
 
-case class CreationTimestamp(value: String)
+@text
+case class CreationTimestamp(@text value: String)
 object CreationTimestamp extends CodecXml.HasText[CreationTimestamp](new CreationTimestamp(_), _.value)
 
-case class Trade(header: TradeHeader, swap: Swap)
+case class Trade(
+  @element("tradeHeader") header: TradeHeader,
+  @element swap: Swap
+)
 
 object Trade {
   implicit val codec: CodecXml[Trade] = CodecXml(Trade.apply _, Trade.unapply _)(
@@ -153,11 +193,16 @@ object Trade {
 }
 
 case class TradeHeader(
-  xsiNamespace: Namespace,
-  headerType: String,
-  partyTradeIdentifier: PartyTradeIdentifier, partyTradeInformation: PartyTradeInformation,
-  tradeDate: FDate, clearedDate: FDate, originatingEvent: OriginatingEvent, status: Status,
-  universalSwapIdentifier: UniversalSwapIdentifier, creditLimitInformation: CreditLimitInformation
+  @namespace("xmlns:xsi") xsiNamespace: Namespace,
+  @attribute("xsi:type") headerType: String,
+  @element partyTradeIdentifier: PartyTradeIdentifier,
+  @element partyTradeInformation: PartyTradeInformation,
+  @element tradeDate: FDate,
+  @element clearedDate: FDate,
+  @element("cme:originatingEvent") originatingEvent: OriginatingEvent,
+  @element("cme:status") status: Status,
+  @element("cme:universalSwapIdentifier") universalSwapIdentifier: UniversalSwapIdentifier,
+  @element("cme:creditLimitInformation") creditLimitInformation: CreditLimitInformation
 )
 
 object TradeHeader {
@@ -169,13 +214,16 @@ object TradeHeader {
   )
 }
 
-case class FDate(value: String)
+case class FDate(@text value: String)
 object FDate extends CodecXml.HasText[FDate](new FDate(_), _.value)
 
-case class OriginatingEvent(value: String)
+case class OriginatingEvent(@text value: String)
 object OriginatingEvent extends CodecXml.HasText[OriginatingEvent](new OriginatingEvent(_), _.value)
 
-case class PartyTradeIdentifier(partyReference: Reference, tradeIds: List[TradeId])
+case class PartyTradeIdentifier(
+  @element partyReference: Reference,
+  @element tradeIds: List[TradeId]
+)
 
 object PartyTradeIdentifier {
   implicit val codec: CodecXml[PartyTradeIdentifier] = CodecXml(PartyTradeIdentifier.apply _, PartyTradeIdentifier.unapply _)(
@@ -837,3 +885,13 @@ object FpmlExample {
   	</clearingConfirmed>
   </cme:FpML>
 }
+
+case class text() extends scala.annotation.StaticAnnotation
+case class attribute(name: String = null) extends scala.annotation.StaticAnnotation
+case class element(name: String = null) extends scala.annotation.StaticAnnotation
+case class namespace(name: String = null) extends scala.annotation.StaticAnnotation
+
+object namespace {
+  def apply(name: String): namespace = new namespace(Some(name))
+}
+

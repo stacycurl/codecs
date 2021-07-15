@@ -108,7 +108,7 @@ package object xml {
 
     def element(name: Name)(implicit encodeA: EncodeN[A], decodeA: DecodeN[A]): CodecXml[A] = CodecXml.of[A](
       a => encodeA.encode(a).withName(name),
-      node => decodeA.decode(node.elements collect {
+      xml => decodeA.decode(xml.elements collect {
         case element@Xml.Element(`name`, _) => element
       }).appendContext(name)
     )
